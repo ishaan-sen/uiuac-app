@@ -9,6 +9,17 @@ struct App {
 }
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let mut fonts = egui::FontDefinitions::default();
+        fonts.font_data.insert(
+            "Uiua386".into(),
+            egui::FontData::from_static(include_bytes!("../assets/Uiua386Color.ttf")).into(),
+        );
+        fonts
+            .families
+            .entry(egui::FontFamily::Monospace)
+            .or_default()
+            .insert(0, "Uiua386".into());
+        cc.egui_ctx.set_fonts(fonts);
         Self::default()
     }
 }
@@ -24,8 +35,8 @@ impl eframe::App for App {
                     ui.horizontal(|ui| {
                         ui.selectable_value(target, Target::Interpreter, "Interpreted");
                         ui.selectable_value(target, Target::Uasm, "Uasm");
-                        ui.selectable_value(target, Target::Uir, "Uir");
-                        ui.selectable_value(target, Target::Tir, "Tir");
+                        ui.selectable_value(target, Target::Uir, "UIR");
+                        ui.selectable_value(target, Target::Tir, "TIR");
                         if ui.button("Compile").clicked() {
                             *compiled = Some(String::from("Pretend this is TIR"));
                         }
