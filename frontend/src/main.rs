@@ -6,6 +6,9 @@ struct App {
     state: AppState,
     signon_key: Option<u64>,
     profile: Option<String>,
+    target: Target,
+    code: String,
+    compiled: Option<String>,
 }
 impl App {
     fn new(cc: &eframe::CreationContext<'_>) -> Self {
@@ -26,19 +29,19 @@ impl App {
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
         match &mut self.state {
-            AppState::Explorer {
-                target,
-                code,
-                compiled,
-            } => {
+            AppState::Explorer => {
                 egui::Panel::top("settings_and_profile").show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        ui.selectable_value(target, Target::Interpreter, "Interpreted");
-                        ui.selectable_value(target, Target::Uasm, "Uasm");
-                        ui.selectable_value(target, Target::Uir, "UIR");
-                        ui.selectable_value(target, Target::Tir, "TIR");
+                        ui.selectable_value(&mut self.target, Target::Interpreter, "Interpreted");
+                        ui.selectable_value(&mut self.target, Target::Uasm, "Uasm");
+                        ui.selectable_value(&mut self.target, Target::Uir, "UIR");
+                        ui.selectable_value(&mut self.target, Target::Tir, "TIR");
                         if ui.button("Compile").clicked() {
-                            *compiled = Some(String::from("Pretend this is TIR"));
+                            self.compiled = ureq::post("localhost:3000/compile")
+                                .header("content-type", "application/json")
+                                .send_json("{\"code\": \"{self.code, \"emit\": \"tir\"}\"}")
+                                .ok()
+                                .and_then(|mut x| x.body_mut().read_to_string().ok());
                         }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             match &self.profile {
@@ -52,7 +55,7 @@ impl eframe::App for App {
                     .default_size(ui.available_width() / 2.0)
                     .show(ui, |ui| {
                         ui.label("Compiled:");
-                        if let Some(output) = compiled {
+                        if let Some(output) = &mut self.compiled {
                             egui::ScrollArea::vertical()
                                 .auto_shrink([false, false])
                                 .show(ui, |ui| {
@@ -75,7 +78,7 @@ impl eframe::App for App {
                         .show(ui, |ui| {
                             ui.add_sized(
                                 ui.available_size(),
-                                egui::TextEdit::multiline(code).code_editor(),
+                                egui::TextEdit::multiline(&mut self.code).code_editor(),
                             )
                         });
                 });
@@ -85,24 +88,13 @@ impl eframe::App for App {
     }
 }
 
+#[derive(Default)]
 enum AppState {
-    Explorer {
-        target: Target,
-        code: String,
-        compiled: Option<String>,
-    },
+    #[default]
+    Explorer,
     Profile {
-        snippets: Option<Vec<Snippet>>,
+        snippets: Vec<Snippet>,
     },
-}
-impl Default for AppState {
-    fn default() -> Self {
-        Self::Explorer {
-            target: Target::default(),
-            code: String::default(),
-            compiled: None,
-        }
-    }
 }
 
 #[derive(Default)]
