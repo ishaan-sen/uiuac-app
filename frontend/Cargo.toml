@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 eframe = "0.37.0"
 egui = "0.37.0"
+strip-ansi-escapes = "0.2.1"
 ureq = { version="3.5.0", features = ["json"]}
